@@ -1,0 +1,23 @@
+services:
+  reporte-guardias:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reporte_guardias
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HEADLESS: "true"
+      PERSIST_SESSION: "true"
+      SESSION_FILE: /app/.session/crew-storage-state.json
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    ports:
+      - "${HOST_PORT:-3005}:3000"
+    volumes:
+      - crew_session:/app/.session
+
+volumes:
+  crew_session:

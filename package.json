@@ -1,0 +1,15 @@
+{
+  "name": "reporte-guardias-cbt",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "report": "node src/run-once.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "playwright": "^1.49.0"
+  }
+}
