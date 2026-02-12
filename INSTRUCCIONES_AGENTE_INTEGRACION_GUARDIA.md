@@ -51,6 +51,8 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
       "n_bomberos": 0,
       "total_especialistas": 0,
       "detalle_habilitaciones": {},
+      "resumen_habilitaciones": ["4 Asistente de Trauma", "2 Inicial"],
+      "resumen_habilitaciones_texto": "4 Asistente de Trauma / 2 Inicial",
       "conductores": ["string"],
       "observaciones": "",
       "unidades": {
@@ -100,7 +102,7 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
   - `Estado`
   - `Oficial a Cargo`
   - `N Bomberos`
-  - `Total especialistas`
+  - `Habilitaciones`
   - `Conductor 1`
   - `Conductor 2`
   - `Conductor 3`
@@ -112,7 +114,7 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
 - `Estado` -> `fila.estado`
 - `Oficial a Cargo` -> `select` con `fila.oficiales_disponibles`
 - `N Bomberos` -> `fila.n_bomberos`
-- `Total especialistas` -> `fila.total_especialistas`
+- `Habilitaciones` -> `fila.resumen_habilitaciones_texto` (o `fila.resumen_habilitaciones.join(" / ")`)
 - Conductores:
   - `Conductor 1` -> `fila.conductores[0] || ""`
   - `Conductor 2` -> `fila.conductores[1] || ""`

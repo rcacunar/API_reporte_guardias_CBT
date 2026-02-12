@@ -13,6 +13,8 @@ Devuelve JSON y vista HTML.
 - `estado`: match parcial (sin distinguir mayusculas/acentos).
 - `cuartel`: texto parcial; si el filtro es numerico, match exacto por numero de cuartel.
 - En `/report/guardia` y `/report/guardia/view`, `N° Bomberos` se calcula por estados configurables con `estado_valido` (default: `DISPONIBLE`).
+- En `/report/guardia`, el campo de habilitaciones por compañía se calcula desde tags de bomberos presentes (mapeo por color), no desde tabla agregada de `/cuarteles/todo`.
+- Habilitaciones por persona en `/report` derivadas por colores de tags de `/cuarteles/ahora` (background + color de texto) usando tabla PDF CBT.
 - JSON/HTML sin imagenes (`foto_url` eliminado y sin `<img>` en vista).
 - Logging estructurado JSON a stdout/stderr para `docker logs` (requests, lock de scrape, navegacion a CREW, login/sesion y errores).
 - Scraping paralelo por request para las 3 URLs (ahora + siac/resumen + cuarteles/todo) para mantener consistencia temporal por corrida.
@@ -35,6 +37,7 @@ Volumen de sesion en compose:
 
 ## Estructura principal
 - `src/scrape.js`: login, reutilizacion de sesion y extraccion paralela de las 3 fuentes.
+- `src/habilitaciones-map.js`: catalogo de habilitaciones CBT y resolucion de tags por color.
 - `src/server.js`: API Express, filtros y endpoints.
 - `src/guardia-report.js`: logica de mapeo para reporte de guardias (modelo excel -> datos API).
 - `src/logger.js`: logging estructurado JSON (stdout/stderr) para Docker.

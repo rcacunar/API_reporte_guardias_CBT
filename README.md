@@ -63,6 +63,16 @@ API en `http://localhost:3000` (o el `PORT` que definas).
 - `GET /report/guardia/view` -> app web del reporte de guardia (campos editables en vista).
 - `GET /health` -> health check.
 
+### Datos de habilitaciones por persona (en `/report`)
+
+Cada persona en `cuarteles[].personal[]` ahora incluye:
+- `tags`: letras originales de CREW (compatibilidad).
+- `tags_detalle`: detalle por tag con `label`, `background_color`, `text_color`, `match_type`, `habilitacion`, `candidatos`.
+- `habilitaciones`: lista de nombres de habilitaciones mapeadas por color.
+- `habilitaciones_detalle`: lista unica de habilitaciones resueltas (id, nombre, descripcion, colores).
+
+El mapeo se realiza por par de color `background_color` + `text_color` segun la tabla del PDF de habilitaciones de CBT.
+
 ## Sincronizacion de datos
 
 - Cada request a endpoints de reporte dispara una captura que consulta **en paralelo** las 3 URLs.
@@ -76,7 +86,7 @@ API en `http://localhost:3000` (o el `PORT` que definas).
 - `Estado (0-8 / 0-9)`: `0-9` si tiene al menos una unidad en servicio (disponible + conductor) y bomberos presentes; si no, `0-8`.
 - `Oficial a cargo`: en la app web es un desplegable con todos los presentes de ese cuartel/compañía.
 - `N° Bomberos`: total del cuartel segun estados validos configurados en `estado_valido` (por defecto: `DISPONIBLE`).
-- `Total especialistas`: suma de habilitaciones de la columna de esa compañía (desde `/report/cuarteles/todo/habilitaciones`).
+- `Habilitaciones`: desglose por compañía segun bomberos presentes con estado valido (ej: `4 Asistente de Trauma / 2 Inicial`), calculado desde tags mapeados por color en `/report`.
 - `Conductores`: listado de conductores por unidades en servicio (desde `/report/siac/resumen`).
 - `Desglose unidades`: conteo por tipo (`B,BX,Q,M,QM,GR,H,BH,BR,RX,K,S,Z,MX`) usando unidades en servicio.
 

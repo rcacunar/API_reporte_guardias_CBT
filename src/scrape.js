@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 const { writeLog } = require('./logger');
+const { enrichCuartelesTags } = require('./habilitaciones-map');
 
 function parseBooleanEnv(value, defaultValue) {
   if (value === undefined) return defaultValue;
@@ -37,7 +38,7 @@ async function waitForCuartelesAhoraPage(page) {
 }
 
 async function extractCuartelesAhora(page) {
-  return page.evaluate(() => {
+  const rawData = await page.evaluate(() => {
     const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 
     const findMainTable = () => {
@@ -59,8 +60,16 @@ async function extractCuartelesAhora(page) {
       const directDivs = Array.from(card.children).filter((el) => el.tagName === 'DIV');
       const tagDivs = directDivs.filter((div) => /width:\s*18px/i.test(div.getAttribute('style') || ''));
       const tags = tagDivs
-        .map((div) => normalize(div.textContent))
-        .filter(Boolean);
+        .map((div) => {
+          const computed = window.getComputedStyle(div);
+          return {
+            label: normalize(div.textContent),
+            style: div.getAttribute('style') || '',
+            background_color: computed?.backgroundColor || '',
+            text_color: computed?.color || ''
+          };
+        })
+        .filter((tag) => Boolean(tag.label));
 
       const nameDiv = directDivs.find((div) => {
         const style = div.getAttribute('style') || '';
@@ -161,6 +170,11 @@ async function extractCuartelesAhora(page) {
 
     return { cuarteles };
   });
+
+  return {
+    ...rawData,
+    cuarteles: enrichCuartelesTags(rawData?.cuarteles)
+  };
 }
 
 async function waitForSiacResumenPage(page) {

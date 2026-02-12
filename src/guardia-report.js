@@ -117,36 +117,6 @@ function collectEstadosDisponibles(cuartelesAhora) {
   return [...DEFAULT_VALID_STATES];
 }
 
-function buildHabilitacionesByCompanyMap(habilitacionesData) {
-  const columns = Array.isArray(habilitacionesData?.columnas) ? habilitacionesData.columnas : [];
-  const companyColumns = columns.slice(1);
-  const rows = Array.isArray(habilitacionesData?.filas) ? habilitacionesData.filas : [];
-
-  const byCompany = new Map();
-  for (const column of companyColumns) {
-    const key = companyKeyFromName(column);
-    byCompany.set(key, {
-      company_column: column,
-      total_especialistas: 0,
-      detalle: {}
-    });
-  }
-
-  for (const row of rows) {
-    const habilitacion = String(row?.habilitacion || '').trim();
-    for (const column of companyColumns) {
-      const companyKey = companyKeyFromName(column);
-      const value = toNumberOrZero(row?.valores?.[column]);
-      const record = byCompany.get(companyKey);
-      if (!record) continue;
-      record.total_especialistas += value;
-      record.detalle[habilitacion] = value;
-    }
-  }
-
-  return byCompany;
-}
-
 function buildCuartelesByCompanyMap(cuartelesAhora, validStateFilters) {
   const rows = Array.isArray(cuartelesAhora) ? cuartelesAhora : [];
   const byCompany = new Map();
@@ -158,11 +128,46 @@ function buildCuartelesByCompanyMap(cuartelesAhora, validStateFilters) {
     byCompany.set(key, {
       cuartel: cuartel?.cuartel || '',
       n_bomberos: personalValido.length,
-      oficiales_disponibles: uniqueStrings(personal.map((p) => p?.nombre))
+      oficiales_disponibles: uniqueStrings(personal.map((p) => p?.nombre)),
+      personal_valido: personalValido
     });
   }
 
   return byCompany;
+}
+
+function summarizeHabilitaciones(personalValido) {
+  const counts = new Map();
+  const people = Array.isArray(personalValido) ? personalValido : [];
+
+  for (const persona of people) {
+    const rawHabilitaciones = Array.isArray(persona?.habilitaciones)
+      ? persona.habilitaciones
+      : Array.isArray(persona?.habilitaciones_detalle)
+      ? persona.habilitaciones_detalle.map((item) => item?.nombre)
+      : [];
+
+    const personaHabilitaciones = uniqueStrings(rawHabilitaciones);
+    for (const nombre of personaHabilitaciones) {
+      counts.set(nombre, (counts.get(nombre) || 0) + 1);
+    }
+  }
+
+  const entries = Array.from(counts.entries()).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0], 'es', { sensitivity: 'base' });
+  });
+
+  const detalleHabilitaciones = Object.fromEntries(entries);
+  const resumenHabilitaciones = entries.map(([nombre, cantidad]) => `${cantidad} ${nombre}`);
+  const totalEspecialistas = entries.reduce((acc, [, cantidad]) => acc + cantidad, 0);
+
+  return {
+    total_especialistas: totalEspecialistas,
+    detalle_habilitaciones: detalleHabilitaciones,
+    resumen_habilitaciones: resumenHabilitaciones,
+    resumen_habilitaciones_texto: resumenHabilitaciones.join(' / ')
+  };
 }
 
 function buildGuardiaRows(snapshot, options = {}) {
@@ -171,13 +176,11 @@ function buildGuardiaRows(snapshot, options = {}) {
   const validStateFilters = resolveValidStateFilters(options.estadosValidos);
 
   const cuartelesByCompany = buildCuartelesByCompanyMap(snapshot?.cuarteles_ahora, validStateFilters);
-  const habilitacionesByCompany = buildHabilitacionesByCompanyMap(snapshot?.cuarteles_todo_habilitaciones);
 
   return companias.map((compania) => {
     const companiaName = compania?.compania || '';
     const companiaKey = companyKeyFromName(companiaName);
     const cuartelData = cuartelesByCompany.get(companiaKey) || null;
-    const habilitacionesData = habilitacionesByCompany.get(companiaKey) || null;
 
     const carros = Array.isArray(compania?.carros) ? compania.carros : [];
     const carrosEnServicio = carros.filter(isCarroInService);
@@ -190,6 +193,7 @@ function buildGuardiaRows(snapshot, options = {}) {
     const nBomberos = cuartelData ? toNumberOrZero(cuartelData.n_bomberos) : fallbackCount;
     const tieneUnidadEnServicio = carrosEnServicio.length > 0;
     const estado = tieneUnidadEnServicio && nBomberos > 0 ? '0-9' : '0-8';
+    const habilitaciones = summarizeHabilitaciones(cuartelData?.personal_valido || []);
 
     const unidades = UNIT_TYPES.reduce((acc, type) => {
       acc[type] = 0;
@@ -209,8 +213,10 @@ function buildGuardiaRows(snapshot, options = {}) {
       estado,
       oficiales_disponibles: cuartelData?.oficiales_disponibles || [],
       n_bomberos: nBomberos,
-      total_especialistas: toNumberOrZero(habilitacionesData?.total_especialistas),
-      detalle_habilitaciones: habilitacionesData?.detalle || {},
+      total_especialistas: toNumberOrZero(habilitaciones.total_especialistas),
+      detalle_habilitaciones: habilitaciones.detalle_habilitaciones,
+      resumen_habilitaciones: habilitaciones.resumen_habilitaciones,
+      resumen_habilitaciones_texto: habilitaciones.resumen_habilitaciones_texto,
       conductores,
       observaciones: '',
       unidades,

@@ -349,6 +349,7 @@ function renderReportHtml(report) {
       const personalRows = (cuartel.personal || [])
         .map((persona) => {
           const tags = Array.isArray(persona.tags) ? persona.tags.join(' ') : '';
+          const habilitaciones = Array.isArray(persona.habilitaciones) ? persona.habilitaciones.join(' | ') : '';
 
           return `
             <tr>
@@ -357,6 +358,7 @@ function renderReportHtml(report) {
               <td>${escapeHtml(persona.estado || '')}</td>
               <td>${escapeHtml(persona.nombre || '')}</td>
               <td>${escapeHtml(tags)}</td>
+              <td>${escapeHtml(habilitaciones)}</td>
             </tr>
           `;
         })
@@ -371,10 +373,11 @@ function renderReportHtml(report) {
               <th>Estado</th>
               <th>Nombre</th>
               <th>Tags</th>
+              <th>Habilitaciones</th>
             </tr>
           </thead>
           <tbody>
-            ${personalRows || '<tr><td colspan="5" class="muted">Sin personal</td></tr>'}
+            ${personalRows || '<tr><td colspan="6" class="muted">Sin personal</td></tr>'}
           </tbody>
         </table>
       `;
@@ -700,6 +703,9 @@ function renderGuardiaReportHtml(data) {
       const c1 = conductores[0] || '';
       const c2 = conductores[1] || '';
       const c3 = conductores[2] || '';
+      const resumenHabilitaciones = Array.isArray(row?.resumen_habilitaciones)
+        ? row.resumen_habilitaciones.join(' / ')
+        : row?.resumen_habilitaciones_texto || '';
       const unitsCells = unitTypes
         .map((type) => `<td class="center">${escapeHtml(row?.unidades?.[type] ?? 0)}</td>`)
         .join('');
@@ -715,7 +721,7 @@ function renderGuardiaReportHtml(data) {
             </select>
           </td>
           <td class="center">${escapeHtml(row?.n_bomberos ?? 0)}</td>
-          <td class="center">${escapeHtml(row?.total_especialistas ?? 0)}</td>
+          <td>${escapeHtml(resumenHabilitaciones)}</td>
           <td>${escapeHtml(c1)}</td>
           <td>${escapeHtml(c2)}</td>
           <td>${escapeHtml(c3)}</td>
@@ -736,7 +742,7 @@ function renderGuardiaReportHtml(data) {
           <th>Estado</th>
           <th>Oficial a Cargo</th>
           <th>N° Bomberos</th>
-          <th>Total especialistas</th>
+          <th>Habilitaciones</th>
           <th>Conductor 1</th>
           <th>Conductor 2</th>
           <th>Conductor 3</th>
