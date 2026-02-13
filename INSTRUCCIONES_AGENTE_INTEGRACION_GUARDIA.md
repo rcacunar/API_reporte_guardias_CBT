@@ -48,6 +48,10 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
       "cuartel": "string|null",
       "estado": "0-8|0-9",
       "oficiales_disponibles": ["string"],
+      "oficiales_detalle": [
+        { "nombre": "string", "estado": "string|null", "es_oficial": true }
+      ],
+      "oficiales_filtrados": ["string"],
       "n_bomberos": 0,
       "total_especialistas": 0,
       "detalle_habilitaciones": {},
@@ -112,7 +116,7 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
 6. Render por fila:
 - `Companias` -> `fila.compania`
 - `Estado` -> `fila.estado`
-- `Oficial a Cargo` -> `select` con `fila.oficiales_disponibles`
+- `Oficial a Cargo` -> `select` con `fila.oficiales_filtrados` (fallback: `fila.oficiales_disponibles`)
 - `N Bomberos` -> `fila.n_bomberos`
 - `Habilitaciones` -> `fila.resumen_habilitaciones_texto` (o `fila.resumen_habilitaciones.join(" / ")`)
 - Conductores:

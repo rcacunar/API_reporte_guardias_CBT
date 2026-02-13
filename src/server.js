@@ -694,7 +694,11 @@ function renderGuardiaReportHtml(data) {
   const rowsHtml = rows
     .map((row, index) => {
       const companiaKey = row?.compania_key || `row_${index}`;
-      const oficiales = Array.isArray(row?.oficiales_disponibles) ? row.oficiales_disponibles : [];
+      const oficiales = Array.isArray(row?.oficiales_filtrados) && row.oficiales_filtrados.length > 0
+        ? row.oficiales_filtrados
+        : Array.isArray(row?.oficiales_disponibles)
+        ? row.oficiales_disponibles
+        : [];
       const oficialesOptions = oficiales
         .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
         .join('');

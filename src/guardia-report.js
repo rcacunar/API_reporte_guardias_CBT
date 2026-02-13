@@ -100,6 +100,46 @@ function uniqueStrings(values) {
   return output;
 }
 
+function isOficialByCargo(cargo) {
+  const normalized = normalizeText(cargo);
+  if (!normalized) return false;
+
+  const officialHints = [
+    'superintendente',
+    'vicesuperintendente',
+    'comandante',
+    'capitan',
+    'teniente',
+    'inspector',
+    'oficial',
+    'ayudante'
+  ];
+
+  return officialHints.some((hint) => normalized.includes(hint));
+}
+
+function buildOficialesDetalle(personal) {
+  const rows = Array.isArray(personal) ? personal : [];
+  const seen = new Set();
+  const output = [];
+
+  for (const persona of rows) {
+    const nombre = String(persona?.nombre || '').trim();
+    if (!nombre) continue;
+    const key = normalizeText(nombre);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    output.push({
+      nombre,
+      estado: String(persona?.estado || '').trim() || null,
+      es_oficial: isOficialByCargo(persona?.cargo)
+    });
+  }
+
+  return output;
+}
+
 function collectEstadosDisponibles(cuartelesAhora) {
   const rows = Array.isArray(cuartelesAhora) ? cuartelesAhora : [];
   const states = [];
@@ -125,10 +165,14 @@ function buildCuartelesByCompanyMap(cuartelesAhora, validStateFilters) {
     const key = companyKeyFromName(cuartel?.cuartel);
     const personal = Array.isArray(cuartel?.personal) ? cuartel.personal : [];
     const personalValido = personal.filter((p) => isEstadoValido(p?.estado, validStateFilters));
+    const oficialesDetalle = buildOficialesDetalle(personal);
+    const oficialesFiltrados = uniqueStrings(personalValido.map((p) => p?.nombre));
     byCompany.set(key, {
       cuartel: cuartel?.cuartel || '',
       n_bomberos: personalValido.length,
       oficiales_disponibles: uniqueStrings(personal.map((p) => p?.nombre)),
+      oficiales_detalle: oficialesDetalle,
+      oficiales_filtrados: oficialesFiltrados,
       personal_valido: personalValido
     });
   }
@@ -212,6 +256,8 @@ function buildGuardiaRows(snapshot, options = {}) {
       cuartel: cuartelData?.cuartel || null,
       estado,
       oficiales_disponibles: cuartelData?.oficiales_disponibles || [],
+      oficiales_detalle: cuartelData?.oficiales_detalle || [],
+      oficiales_filtrados: cuartelData?.oficiales_filtrados || [],
       n_bomberos: nBomberos,
       total_especialistas: toNumberOrZero(habilitaciones.total_especialistas),
       detalle_habilitaciones: habilitaciones.detalle_habilitaciones,

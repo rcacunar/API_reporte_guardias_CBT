@@ -73,6 +73,15 @@ Cada persona en `cuarteles[].personal[]` ahora incluye:
 
 El mapeo se realiza por par de color `background_color` + `text_color` segun la tabla del PDF de habilitaciones de CBT.
 
+### Oficiales por estado (en `/report/guardia`)
+
+Cada fila de `filas[]` ahora incluye:
+- `oficiales_disponibles`: nombres presentes en el cuartel (compatibilidad).
+- `oficiales_detalle`: arreglo con `{ nombre, estado, es_oficial }`.
+- `oficiales_filtrados`: nombres filtrados por `estado_valido` activo.
+
+Con esto el frontend puede poblar el combo `Oficial a Cargo` solo con opciones validas para el filtro de estado aplicado.
+
 ## Sincronizacion de datos
 
 - Cada request a endpoints de reporte dispara una captura que consulta **en paralelo** las 3 URLs.
