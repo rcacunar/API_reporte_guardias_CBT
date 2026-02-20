@@ -49,7 +49,7 @@ No uses `/report/guardia/view` como fuente de datos. Usa solo el JSON de `/repor
       "estado": "0-8|0-9",
       "oficiales_disponibles": ["string"],
       "oficiales_detalle": [
-        { "nombre": "string", "estado": "string|null", "es_oficial": true }
+        { "nombre": "string", "cargo": "string|null", "estado": "string|null", "es_oficial": true }
       ],
       "oficiales_filtrados": ["string"],
       "n_bomberos": 0,

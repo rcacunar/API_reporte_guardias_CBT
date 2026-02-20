@@ -14,7 +14,7 @@ Devuelve JSON y vista HTML.
 - `cuartel`: texto parcial; si el filtro es numerico, match exacto por numero de cuartel.
 - En `/report/guardia` y `/report/guardia/view`, `N° Bomberos` se calcula por estados configurables con `estado_valido` (default: `DISPONIBLE`).
 - En `/report/guardia`, el campo de habilitaciones por compañía se calcula desde tags de bomberos presentes (mapeo por color), no desde tabla agregada de `/cuarteles/todo`.
-- En `/report/guardia`, cada fila entrega `oficiales_detalle` (nombre/estado/es_oficial) y `oficiales_filtrados` (segun `estado_valido`) para poblar correctamente `Oficial a Cargo`.
+- En `/report/guardia`, cada fila entrega `oficiales_detalle` (nombre/cargo/estado/es_oficial) y `oficiales_filtrados` (segun `estado_valido`) para poblar correctamente `Oficial a Cargo`.
 - Habilitaciones por persona en `/report` derivadas por colores de tags de `/cuarteles/ahora` (background + color de texto) usando tabla PDF CBT.
 - JSON/HTML sin imagenes (`foto_url` eliminado y sin `<img>` en vista).
 - Logging estructurado JSON a stdout/stderr para `docker logs` (requests, lock de scrape, navegacion a CREW, login/sesion y errores).

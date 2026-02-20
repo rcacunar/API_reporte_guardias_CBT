@@ -77,7 +77,7 @@ El mapeo se realiza por par de color `background_color` + `text_color` segun la 
 
 Cada fila de `filas[]` ahora incluye:
 - `oficiales_disponibles`: nombres presentes en el cuartel (compatibilidad).
-- `oficiales_detalle`: arreglo con `{ nombre, estado, es_oficial }`.
+- `oficiales_detalle`: arreglo con `{ nombre, cargo, estado, es_oficial }`.
 - `oficiales_filtrados`: nombres filtrados por `estado_valido` activo.
 
 Con esto el frontend puede poblar el combo `Oficial a Cargo` solo con opciones validas para el filtro de estado aplicado.

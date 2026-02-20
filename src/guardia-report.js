@@ -132,6 +132,7 @@ function buildOficialesDetalle(personal) {
 
     output.push({
       nombre,
+      cargo: String(persona?.cargo || '').trim() || null,
       estado: String(persona?.estado || '').trim() || null,
       es_oficial: isOficialByCargo(persona?.cargo)
     });
