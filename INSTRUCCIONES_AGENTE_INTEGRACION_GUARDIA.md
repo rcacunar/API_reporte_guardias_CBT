@@ -1,4 +1,4 @@
-# Instrucciones Para Agente - Integracion `/report/guardia`
+# Instrucciones - Integracion `/report/guardia`
 
 ## Objetivo
 Implementar en otro frontend una pantalla de reporte de guardias consumiendo `GET /report/guardia` y recreando el esqueleto funcional de `GET /report/guardia/view`.
