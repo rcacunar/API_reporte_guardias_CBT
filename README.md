@@ -7,6 +7,13 @@ Servicio en Node/Express que abre CREW, autentica y extrae en paralelo:
 
 Con esa captura paralela se exponen endpoints JSON/HTML.
 
+## Seguridad de despliegue
+
+Importante:
+- Esta API **no** implementa autenticacion/autorizacion propia para consumidores (no API key/JWT).
+- Debe desplegarse **solo dentro de red interna** (LAN/VPN/VPC privada) o detras de un gateway interno con control de acceso.
+- **No** exponer esta API directamente a Internet publica.
+
 ## Variables de entorno
 
 ```bash
@@ -140,6 +147,7 @@ Eventos relevantes que ahora se registran:
 2. Configurar variables de entorno (al menos `CREW_USERNAME`, `CREW_PASSWORD`).
 3. Mantener `HEADLESS=true`.
 4. Mantener el volumen montado en `/app/.session` para persistir la sesion.
+5. Restringir exposicion del servicio a red interna; no publicar el endpoint a Internet publica.
 
 ## Comportamiento de sesion
 

@@ -8,6 +8,11 @@ Servicio Node/Express con Playwright para extraer datos desde:
 
 Devuelve JSON y vista HTML.
 
+## Seguridad de despliegue
+- La API no tiene autenticacion/autorizacion para clientes externos (no API key/JWT).
+- Debe operar en red interna y no quedar expuesta a Internet publica.
+- Si se requiere acceso remoto, debe ser via capa externa de seguridad (VPN, allowlist IP o proxy con autenticacion).
+
 ## Estado actual
 - Filtros por `estado` y `cuartel` en endpoints JSON/HTML.
 - `estado`: match parcial (sin distinguir mayusculas/acentos).
