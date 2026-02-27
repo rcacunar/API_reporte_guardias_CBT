@@ -21,6 +21,7 @@ Devuelve JSON y vista HTML.
 - En `/report/guardia`, el campo de habilitaciones por compañía se calcula desde tags de bomberos presentes (mapeo por color), no desde tabla agregada de `/cuarteles/todo`.
 - En `/report/guardia`, cada fila entrega `oficiales_detalle` (nombre/cargo/estado/es_oficial) y `oficiales_filtrados` (segun `estado_valido`) para poblar correctamente `Oficial a Cargo`.
 - Habilitaciones por persona en `/report` derivadas por colores de tags de `/cuarteles/ahora` (background + color de texto) usando tabla PDF CBT.
+- En `/report/siac/resumen`, una unidad con color `rgb(13, 108, 232)` se marca como `en_emergencia=true` y `disponible_operativa=true`; el reporte de guardia la cuenta como unidad en servicio.
 - JSON/HTML sin imagenes (`foto_url` eliminado y sin `<img>` en vista).
 - Logging estructurado JSON a stdout/stderr para `docker logs` (requests, lock de scrape, navegacion a CREW, login/sesion y errores).
 - Scraping paralelo por request para las 3 URLs (ahora + siac/resumen + cuarteles/todo) para mantener consistencia temporal por corrida.

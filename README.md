@@ -70,6 +70,19 @@ API en `http://localhost:3000` (o el `PORT` que definas).
 - `GET /report/guardia/view` -> app web del reporte de guardia (campos editables en vista).
 - `GET /health` -> health check.
 
+### Unidades en emergencia (SIAC)
+
+Cuando una unidad se muestra en CREW con color `rgb(13, 108, 232)` (boton de carro en `/siac/resumen`), la API la marca como:
+- `en_emergencia: true`
+- `disponible_operativa: true`
+
+Campos nuevos por carro en `/report/siac/resumen`:
+- `en_emergencia`
+- `disponible_operativa`
+- `ui_background_color`
+
+Ademas, el reporte `/report/guardia` considera `disponible_operativa` / `en_emergencia` para contar unidades en servicio.
+
 ### Datos de habilitaciones por persona (en `/report`)
 
 Cada persona en `cuarteles[].personal[]` ahora incluye:
