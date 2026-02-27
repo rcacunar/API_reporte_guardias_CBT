@@ -525,6 +525,8 @@ function renderSiacResumenHtml(data) {
               <td>${escapeHtml(carro?.estado || '')}</td>
               <td>${escapeHtml(carro?.conductor || '')}</td>
               <td>${escapeHtml(carro?.disponible || '')}</td>
+              <td>${carro?.en_emergencia ? 'SI' : 'NO'}</td>
+              <td>${carro?.disponible_operativa ? 'SI' : 'NO'}</td>
               <td>${escapeHtml(carro?.mecanica || '')}</td>
             </tr>
           `;
@@ -542,11 +544,13 @@ function renderSiacResumenHtml(data) {
                 <th>Estado</th>
                 <th>Conductor</th>
                 <th>Disponible</th>
+                <th>En Emergencia</th>
+                <th>Disponible Operativa</th>
                 <th>Mecánica</th>
               </tr>
             </thead>
             <tbody>
-              ${carrosRows || '<tr><td colspan="5" class="muted">Sin carros</td></tr>'}
+              ${carrosRows || '<tr><td colspan="7" class="muted">Sin carros</td></tr>'}
             </tbody>
           </table>
         </div>

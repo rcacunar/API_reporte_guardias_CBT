@@ -70,8 +70,10 @@ function isEstadoValido(estado, validStateFilters) {
 
 function isCarroInService(carro) {
   const disponible = normalizeText(carro?.disponible);
+  const disponibleOperativa = carro?.disponible_operativa === true;
+  const enEmergencia = carro?.en_emergencia === true;
   const conductor = carro?.conductor;
-  return (disponible === 'si' || disponible === 'sí') && isConductorNameValid(conductor);
+  return (disponible === 'si' || disponible === 'sí' || disponibleOperativa || enEmergencia) && isConductorNameValid(conductor);
 }
 
 function detectUnitType(carroName) {
@@ -272,7 +274,10 @@ function buildGuardiaRows(snapshot, options = {}) {
         conductor: carro?.conductor || '',
         estado: carro?.estado || '',
         disponible: carro?.disponible || '',
-        mecanica: carro?.mecanica || ''
+        mecanica: carro?.mecanica || '',
+        en_emergencia: carro?.en_emergencia === true,
+        disponible_operativa: carro?.disponible_operativa === true,
+        ui_background_color: carro?.ui_background_color || null
       }))
     };
   });

@@ -185,6 +185,8 @@ async function waitForSiacResumenPage(page) {
 async function extractSiacResumen(page) {
   return page.evaluate(() => {
     const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalizeColor = (value) => normalize(value).toLowerCase().replace(/\s+/g, '');
+    const EMERGENCY_BG_COLOR = 'rgb(13,108,232)';
     const normalizeKey = (value) =>
       normalize(value)
         .normalize('NFD')
@@ -249,13 +251,23 @@ async function extractSiacResumen(page) {
           const panelId = panelIdMatch ? panelIdMatch[1] : null;
           const panelEl = panelId ? document.getElementById(panelId) : null;
           const panelData = parseCarPanel(panelEl) || {};
+          const buttonBackgroundColor = window.getComputedStyle(button)?.backgroundColor || null;
+          const enEmergencia = normalizeColor(buttonBackgroundColor) === EMERGENCY_BG_COLOR;
+          const disponibleNormalizado = normalize(panelData.disponible).toLowerCase();
+          const disponibleOperativa =
+            enEmergencia ||
+            disponibleNormalizado === 'si' ||
+            disponibleNormalizado === 'sí';
 
           return {
             carro: panelData.carro || carroNombre || null,
             estado: panelData.estado || null,
             conductor: panelData.conductor || null,
             disponible: panelData.disponible || null,
-            mecanica: panelData.mecanica || null
+            mecanica: panelData.mecanica || null,
+            en_emergencia: enEmergencia,
+            disponible_operativa: disponibleOperativa,
+            ui_background_color: buttonBackgroundColor
           };
         });
 
