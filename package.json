@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "report": "node src/run-once.js"
+    "report": "node src/run-once.js",
+    "session:manual": "node src/save-session.js"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

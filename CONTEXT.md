@@ -36,11 +36,11 @@ Implementada en `src/scrape.js`:
 ## Docker / Coolify
 Archivos agregados:
 - `Dockerfile`: imagen Playwright headless para Linux sin UI.
-- `docker-compose.yml`: servicio con puerto configurable y volumen persistente de sesion.
+- `docker-compose.yml`: servicio con puerto configurable y bind mount persistente de sesion.
 - `.dockerignore`: reduce contexto de build.
 
-Volumen de sesion en compose:
-- `/app/.session` (persistente) para mantener `crew-storage-state.json`.
+Sesion en compose:
+- `${SESSION_DIR:-./.session}` en la maquina se monta en `/app/.session` para mantener `crew-storage-state.json`.
 
 ## Estructura principal
 - `src/scrape.js`: login, reutilizacion de sesion y extraccion paralela de las 3 fuentes.

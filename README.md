@@ -26,6 +26,7 @@ SLOW_MO=0
 TIMEOUT_MS=60000
 PERSIST_SESSION=true
 SESSION_FILE=.session/crew-storage-state.json
+SESSION_DIR=./.session
 HOST_PORT=3005
 LOG_LEVEL=info
 ```
@@ -34,6 +35,7 @@ Notas:
 - `HEADLESS=true` para servidor Linux sin interfaz grafica.
 - `PERSIST_SESSION=true` intenta reutilizar sesion entre consultas.
 - `SESSION_FILE` guarda cookies/sesion de Playwright. Si la sesion expira, el servicio hace login de nuevo y sobrescribe ese archivo.
+- `SESSION_DIR` define el directorio de la maquina que Docker monta en `/app/.session`; en Coolify conviene usar una ruta absoluta persistente.
 - `LOG_LEVEL` controla verbosidad (`debug`, `info`, `warn`, `error`).
 
 ## Ejecucion local (sin Docker)
@@ -127,7 +129,7 @@ Nota:
 
 El repo incluye:
 - `Dockerfile` (base Playwright, listo para Chromium headless).
-- `docker-compose.yml` (expone puerto y crea volumen para sesion persistente).
+- `docker-compose.yml` (expone puerto y monta un directorio de la maquina para sesion persistente).
 
 ### Levantar en local con Docker Compose
 
@@ -159,7 +161,7 @@ Eventos relevantes que ahora se registran:
 1. Crear servicio tipo **Docker Compose** apuntando a este repo.
 2. Configurar variables de entorno (al menos `CREW_USERNAME`, `CREW_PASSWORD`).
 3. Mantener `HEADLESS=true`.
-4. Mantener el volumen montado en `/app/.session` para persistir la sesion.
+4. Mantener `SESSION_DIR` apuntando a un directorio persistente de la maquina, montado en `/app/.session`.
 5. Restringir exposicion del servicio a red interna; no publicar el endpoint a Internet publica.
 
 ## Comportamiento de sesion
@@ -168,6 +170,24 @@ En cada consulta:
 1. Si existe `SESSION_FILE`, Playwright lo carga.
 2. Si CREW ya reconoce la sesion, no hace login.
 3. Si aparece formulario de login (sesion expirada/invalida), hace login y guarda nueva sesion.
+
+## Regenerar sesion manualmente
+
+Si CREW exige captcha, genera una sesion desde un equipo con interfaz grafica:
+
+```bash
+npm run session:manual
+```
+
+El comando abre Chromium, permite iniciar sesion manualmente y guarda el estado en `.session/crew-storage-state.json`.
+Para usar otro destino local:
+
+```bash
+npm run session:manual -- --output ./crew-storage-state.json
+```
+
+Luego copia ese archivo al directorio persistente de la maquina definido por `SESSION_DIR`, con nombre `crew-storage-state.json`.
+El archivo debe contener cookies o storage de `crew.viper.cl`; si solo contiene cookies `_ga`, no representa una sesion autenticada.
 
 ## Ejecutar una sola vez
 

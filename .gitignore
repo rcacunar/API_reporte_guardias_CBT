@@ -4,3 +4,4 @@ output/
 .playwright-cli/
 .session/
 ./CONTEXT.md
+crew-storage-state.json
