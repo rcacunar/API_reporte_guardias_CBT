@@ -17,4 +17,4 @@ services:
     expose:
       - "3000"
     volumes:
-      - "${SESSION_DIR:-./.session}:/app/.session"
+      - /opt/data/reporte-guardias-session:/app/.session
