@@ -23,6 +23,11 @@ async function saveSessionState(context, storageStatePath) {
   await context.storageState({ path: storageStatePath });
 }
 
+async function isLoginVisible(page) {
+  const loginUser = page.getByRole('textbox', { name: /usuario/i });
+  return (await loginUser.count()) > 0 ? await loginUser.first().isVisible().catch(() => false) : false;
+}
+
 async function waitForCuartelesAhoraPage(page) {
   await page.waitForFunction(() => {
     const tables = Array.from(document.querySelectorAll('table'));
@@ -352,12 +357,45 @@ async function extractHabilitaciones(page) {
   });
 }
 
-async function ensureSessionAndLogin({ page, username, password, cuartelesAhoraUrl, traceId, storageStatePath }) {
+async function waitForManualLogin({ page, cuartelesAhoraUrl, traceId, storageStatePath, manualLoginTimeoutMs }) {
+  writeLog('warn', 'crew_manual_login_required', {
+    traceId,
+    timeoutMs: manualLoginTimeoutMs
+  });
+
+  console.error('\nCREW requiere login manual.');
+  console.error('Completa usuario/password/captcha en la ventana de Chromium.');
+  console.error('La automatizacion continuara cuando el formulario de login desaparezca.\n');
+
+  const loginUser = page.getByRole('textbox', { name: /usuario/i });
+  await loginUser.first().waitFor({ state: 'hidden', timeout: manualLoginTimeoutMs });
+
+  await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
+
+  if (await isLoginVisible(page)) {
+    throw new Error('Manual login did not persist. CREW still shows the login form.');
+  }
+
+  await waitForCuartelesAhoraPage(page);
+  await saveSessionState(page.context(), storageStatePath);
+  writeLog('info', 'crew_manual_login_success', { traceId });
+  writeLog('info', 'crew_session_saved', { traceId, sessionFilePath: storageStatePath });
+}
+
+async function ensureSessionAndLogin({
+  page,
+  username,
+  password,
+  cuartelesAhoraUrl,
+  traceId,
+  storageStatePath,
+  manualLogin,
+  manualLoginTimeoutMs
+}) {
   await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
 
   const loginUser = page.getByRole('textbox', { name: /usuario/i });
-  const loginVisible =
-    (await loginUser.count()) > 0 ? await loginUser.first().isVisible().catch(() => false) : false;
+  const loginVisible = await isLoginVisible(page);
 
   writeLog('info', 'crew_session_check', {
     traceId,
@@ -366,6 +404,17 @@ async function ensureSessionAndLogin({ page, username, password, cuartelesAhoraU
 
   if (!loginVisible) {
     writeLog('info', 'crew_session_reused', { traceId });
+    return;
+  }
+
+  if (manualLogin) {
+    await waitForManualLogin({
+      page,
+      cuartelesAhoraUrl,
+      traceId,
+      storageStatePath,
+      manualLoginTimeoutMs
+    });
     return;
   }
 
@@ -393,9 +442,11 @@ async function scrapeCrewSnapshot({
   timeoutMs = 60000,
   persistSession = true,
   sessionFilePath = '.session/crew-storage-state.json',
+  manualLogin = false,
+  manualLoginTimeoutMs = 300000,
   traceId
 }) {
-  if (!username || !password) {
+  if ((!username || !password) && !manualLogin) {
     throw new Error('Missing CREW_USERNAME or CREW_PASSWORD.');
   }
 
@@ -408,19 +459,22 @@ async function scrapeCrewSnapshot({
 
   const storageStatePath = persistSession ? resolveSessionFilePath(sessionFilePath) : null;
   const hasSavedSession = Boolean(storageStatePath && fs.existsSync(storageStatePath));
+  const effectiveHeadless = manualLogin ? false : headless;
 
   writeLog('info', 'scrape_start', {
     traceId,
     baseUrl: safeBaseUrl,
-    headless,
+    headless: effectiveHeadless,
     slowMo,
     timeoutMs,
     persistSession,
     hasSavedSession,
-    sessionFilePath: storageStatePath
+    sessionFilePath: storageStatePath,
+    manualLogin,
+    manualLoginTimeoutMs
   });
 
-  const browser = await chromium.launch({ headless, slowMo });
+  const browser = await chromium.launch({ headless: effectiveHeadless, slowMo });
   const context = await browser.newContext(hasSavedSession ? { storageState: storageStatePath } : undefined);
 
   const authPage = await context.newPage();
@@ -433,7 +487,9 @@ async function scrapeCrewSnapshot({
       password,
       cuartelesAhoraUrl: urls.cuarteles_ahora,
       traceId,
-      storageStatePath
+      storageStatePath,
+      manualLogin,
+      manualLoginTimeoutMs
     });
 
     const pageAhora = await context.newPage();
@@ -519,7 +575,9 @@ function getRuntimeConfig(env = process.env) {
     slowMo: env.SLOW_MO ? Number(env.SLOW_MO) : 0,
     timeoutMs: env.TIMEOUT_MS ? Number(env.TIMEOUT_MS) : 60000,
     persistSession: parseBooleanEnv(env.PERSIST_SESSION, true),
-    sessionFilePath: env.SESSION_FILE || '.session/crew-storage-state.json'
+    sessionFilePath: env.SESSION_FILE || '.session/crew-storage-state.json',
+    manualLogin: parseBooleanEnv(env.CREW_MANUAL_LOGIN, false),
+    manualLoginTimeoutMs: env.CREW_MANUAL_LOGIN_TIMEOUT_MS ? Number(env.CREW_MANUAL_LOGIN_TIMEOUT_MS) : 300000
   };
 }
 

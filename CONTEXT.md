@@ -32,6 +32,7 @@ Implementada en `src/scrape.js`:
 - Si existe `SESSION_FILE`, se carga `storageState` antes de navegar.
 - Si la sesion sigue activa, no se hace login.
 - Si aparece login, se autentica con `CREW_USERNAME`/`CREW_PASSWORD` y se guarda de nuevo el `SESSION_FILE`.
+- Con `CREW_MANUAL_LOGIN=true`, se abre navegador visible y se espera a que el operador resuelva login/captcha antes de continuar la captura.
 
 ## Docker / Coolify
 Archivos agregados:

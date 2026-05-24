@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "report": "node src/run-once.js",
+    "report:manual": "HEADLESS=false CREW_MANUAL_LOGIN=true RUN_ONCE_KEEP_LOGS=true node src/run-once.js",
     "session:manual": "node src/save-session.js"
   },
   "dependencies": {

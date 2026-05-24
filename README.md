@@ -27,6 +27,8 @@ TIMEOUT_MS=60000
 PERSIST_SESSION=true
 SESSION_FILE=.session/crew-storage-state.json
 SESSION_DIR=./.session
+CREW_MANUAL_LOGIN=false
+CREW_MANUAL_LOGIN_TIMEOUT_MS=300000
 HOST_PORT=3005
 LOG_LEVEL=info
 ```
@@ -36,6 +38,8 @@ Notas:
 - `PERSIST_SESSION=true` intenta reutilizar sesion entre consultas.
 - `SESSION_FILE` guarda cookies/sesion de Playwright. Si la sesion expira, el servicio hace login de nuevo y sobrescribe ese archivo.
 - `SESSION_DIR` define el directorio de la maquina que Docker monta en `/app/.session`; en Coolify conviene usar una ruta absoluta persistente.
+- `CREW_MANUAL_LOGIN=true` fuerza navegador visible y espera a que completes login/captcha si CREW no reconoce la sesion.
+- `CREW_MANUAL_LOGIN_TIMEOUT_MS` define cuanto espera el flujo manual antes de fallar.
 - `LOG_LEVEL` controla verbosidad (`debug`, `info`, `warn`, `error`).
 
 ## Ejecucion local (sin Docker)
@@ -188,6 +192,16 @@ npm run session:manual -- --output ./crew-storage-state.json
 
 Luego copia ese archivo al directorio persistente de la maquina definido por `SESSION_DIR`, con nombre `crew-storage-state.json`.
 El archivo debe contener cookies o storage de `crew.viper.cl`; si solo contiene cookies `_ga`, no representa una sesion autenticada.
+
+## Probar captura con login manual
+
+Para validar localmente que la automatizacion completa sigue funcionando con navegador visible:
+
+```bash
+npm run report:manual
+```
+
+El comando abre Chromium, carga la sesion guardada si existe y, si CREW muestra login, espera a que completes usuario/password/captcha en la ventana. Cuando el formulario desaparece, guarda la sesion y continua con la navegacion a `/cuarteles/ahora`, `/siac/resumen` y `/cuarteles/todo`.
 
 ## Ejecutar una sola vez
 
