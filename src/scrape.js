@@ -428,6 +428,13 @@ async function ensureSessionAndLogin({
     loginButton.click()
   ]);
 
+  await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
+
+  if (await isLoginVisible(page)) {
+    throw new Error('Automatic CREW login did not reach an authenticated session. Regenerate the session with CREW_MANUAL_LOGIN=true.');
+  }
+
+  await waitForCuartelesAhoraPage(page);
   writeLog('info', 'crew_login_success', { traceId });
   await saveSessionState(page.context(), storageStatePath);
   writeLog('info', 'crew_session_saved', { traceId, sessionFilePath: storageStatePath });
