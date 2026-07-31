@@ -24,12 +24,21 @@ async function saveSessionState(context, storageStatePath) {
 }
 
 async function isLoginVisible(page) {
-  const loginUser = page.getByRole('textbox', { name: /usuario/i });
-  return (await loginUser.count()) > 0 ? await loginUser.first().isVisible().catch(() => false) : false;
+  const legacyLoginUser = page.getByRole('textbox', { name: /usuario/i });
+  if ((await legacyLoginUser.count()) > 0) {
+    return legacyLoginUser.first().isVisible().catch(() => false);
+  }
+
+  // Gestión muestra primero los proveedores de autenticación y deja el
+  // formulario correo/contraseña oculto hasta elegir esa alternativa.
+  const gestionEmailLogin = page.locator('a.login-email-btn, input[name="email"]');
+  return (await gestionEmailLogin.count()) > 0;
 }
 
 async function waitForCuartelesAhoraPage(page) {
   await page.waitForFunction(() => {
+    if (document.querySelector('.quarter-row .siac-card-vertical')) return true;
+
     const tables = Array.from(document.querySelectorAll('table'));
     return tables.some((table) => {
       const headerRow = table.querySelector(':scope > tbody > tr');
@@ -43,6 +52,76 @@ async function waitForCuartelesAhoraPage(page) {
 }
 
 async function extractCuartelesAhora(page) {
+  const gestionData = await page.evaluate(async () => {
+    try {
+      const response = await fetch(location.href, {
+        headers: {
+          Accept: 'application/json, text/javascript, */*; q=0.01',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+      });
+      const data = await response.json();
+      if (!Array.isArray(data?.cuarteles) || !Array.isArray(data?.presentes)) return null;
+
+      const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      const estados = data.estados || {};
+      const habilitaciones = data.habilitaciones || {};
+      const estadosDisponibles = new Set((data.estadosDisponibles || []).map(Number));
+      const cuarteles = data.cuarteles.map((cuartel) => {
+        const personal = data.presentes
+          .filter((persona) => Number(persona.id_cuartel) === Number(cuartel.id_cuartel))
+          .map((persona) => {
+            const estado = estados[persona.disponible] || {};
+            const tags = (persona.habilitaciones || [])
+              .map((id) => {
+                const habilitacion = habilitaciones[id] || {};
+                return {
+                  label: normalize(habilitacion.nombre).slice(0, 1),
+                  style: `background:${habilitacion.background || ''};color:${habilitacion.color || ''};`,
+                  background_color: habilitacion.background || '',
+                  text_color: habilitacion.color || ''
+                };
+              })
+              .filter((tag) => Boolean(tag.label));
+
+            return {
+              registro: normalize(persona.registro) || null,
+              cargo: normalize(persona.cargo) || null,
+              estado: normalize(estado.nombre) || null,
+              nombre: normalize(persona.nombre) || null,
+              tags,
+              cambiar_estado_url: null,
+              eliminar_id: persona.id || null,
+              eliminar_url: null
+            };
+          })
+          .filter((persona) => persona.nombre || persona.registro);
+
+        return {
+          cuartel: normalize(cuartel.nombre),
+          disponibles: personal.filter((persona) => {
+            const source = data.presentes.find((item) => String(item.id) === String(persona.eliminar_id));
+            return source && estadosDisponibles.has(Number(source.disponible));
+          }).length,
+          total_personal: personal.length,
+          personal
+        };
+      }).filter((cuartel) => cuartel.cuartel);
+
+      return { cuarteles };
+    } catch (error) {
+      return null;
+    }
+  });
+
+  if (gestionData) {
+    return {
+      ...gestionData,
+      cuarteles: enrichCuartelesTags(gestionData.cuarteles)
+    };
+  }
+
   const rawData = await page.evaluate(() => {
     const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -134,6 +213,53 @@ async function extractCuartelesAhora(page) {
       };
     };
 
+    const gestionRows = Array.from(document.querySelectorAll('.quarter-row'));
+    if (gestionRows.length > 0) {
+      const cuarteles = gestionRows
+        .map((row) => {
+          const cuartel = normalize(row.querySelector('.q-name-title')?.textContent || '');
+          const disponiblesRaw = normalize(row.querySelector('.q-available-big')?.textContent || '');
+          const disponibles = Number(disponiblesRaw);
+          const personal = Array.from(row.querySelectorAll('.personal-scroll-container .siac-card-vertical'))
+            .map((card) => {
+              const tags = Array.from(card.querySelectorAll('.hab-tag'))
+                .map((tag) => {
+                  const computed = window.getComputedStyle(tag);
+                  return {
+                    label: normalize(tag.textContent),
+                    style: tag.getAttribute('style') || '',
+                    background_color: computed?.backgroundColor || '',
+                    text_color: computed?.color || ''
+                  };
+                })
+                .filter((tag) => Boolean(tag.label));
+
+              const checkoutForm = card.querySelector('.form-checkout');
+              return {
+                registro: normalize(card.querySelector('.card-reg-number')?.textContent || '') || null,
+                cargo: normalize(card.querySelector('.card-rank')?.textContent || '') || null,
+                estado: normalize(card.querySelector('.card-status-btn')?.textContent || '') || null,
+                nombre: normalize(card.querySelector('.card-name-text')?.textContent || '') || null,
+                tags,
+                cambiar_estado_url: null,
+                eliminar_id: checkoutForm?.querySelector('input[name="agregar"]')?.value || null,
+                eliminar_url: null
+              };
+            })
+            .filter((person) => person.nombre || person.registro);
+
+          return {
+            cuartel,
+            disponibles: Number.isFinite(disponibles) ? disponibles : null,
+            total_personal: personal.length,
+            personal
+          };
+        })
+        .filter((entry) => entry.cuartel);
+
+      return { cuarteles };
+    }
+
     const table = findMainTable();
     if (!table) {
       return {
@@ -183,11 +309,87 @@ async function extractCuartelesAhora(page) {
 }
 
 async function waitForSiacResumenPage(page) {
-  await page.waitForSelector('.row.fila', { state: 'attached' });
+  await page.waitForSelector('.row.fila, .fila-siac', { state: 'attached' });
   await page.waitForSelector('button.cuadro_vehiculo', { state: 'attached' });
 }
 
 async function extractSiacResumen(page) {
+  const gestionData = await page.evaluate(async () => {
+    const rows = Array.from(document.querySelectorAll('.fila-siac'));
+    const configText = Array.from(document.scripts)
+      .map((script) => script.textContent || '')
+      .find((text) => text.includes('"personalUrl"') && text.includes('"vehiclesUrl"'));
+
+    if (rows.length === 0 || !configText) return null;
+
+    try {
+      const config = JSON.parse(configText);
+      const fetchJson = async (url) => {
+        const target = new URL(url, location.href);
+        target.searchParams.set('id_cuerpo', config.idCuerpo);
+        const response = await fetch(target.toString(), { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`SIAC request failed: ${response.status}`);
+        return response.json();
+      };
+      const [personalByCompany, vehiclesResponse] = await Promise.all([
+        fetchJson(config.personalUrl),
+        fetchJson(config.vehiclesUrl)
+      ]);
+      const vehicles = Array.isArray(vehiclesResponse?.data) ? vehiclesResponse.data : [];
+      const normalizeKey = (value) => String(value || '').replace(/[^\p{L}\p{N}]/gu, '').toUpperCase();
+      const isTrue = (value) => value === true || value === 't' || value === 'true' || value === 1 || value === '1';
+      const vehicleByKey = new Map();
+      vehicles.forEach((vehicle) => vehicleByKey.set(normalizeKey(vehicle.name || vehicle.alias), vehicle));
+
+      const companias = rows.map((row) => {
+        const companyId = (row.id || '').replace(/^cia-row-/, '');
+        const personal = personalByCompany?.[companyId] || {};
+        const carros = Array.from(row.querySelectorAll('button.cuadro_vehiculo')).map((button) => {
+          const key = normalizeKey(button.dataset.siacVehicleDetail || button.textContent);
+          const vehicle = vehicleByKey.get(key) || {};
+          const available = isTrue(vehicle.available);
+          const inService = isTrue(vehicle.in_service);
+          const failure = isTrue(vehicle.failure);
+          const emergency = !available && inService && ['Despachado', '6-0', '6-1', '6-3'].includes(vehicle.status);
+          const statusId = failure ? 4 : emergency ? 2 : available && inService ? 1 : 3;
+          const color = config.vehiclesConfig?.[statusId] || {};
+
+          return {
+            carro: vehicle.name || button.textContent.trim() || null,
+            estado: vehicle.status || null,
+            conductor: vehicle.primary_driver || vehicle.driver || null,
+            disponible: available ? 'Sí' : 'No',
+            mecanica: failure ? 'En mantención' : 'Operativo',
+            en_emergencia: emergency,
+            disponible_operativa: statusId === 1 || statusId === 2,
+            ui_background_color: color.background || window.getComputedStyle(button).backgroundColor || null
+          };
+        });
+
+        const disponibles = Number(personal.disponibles);
+        const total = Number(personal.total);
+        return {
+          compania: (row.querySelector('.col-cia')?.textContent || '').replace(/\s+/g, ' ').trim(),
+          carros,
+          personal_resumen: {
+            disponibles: Number.isFinite(disponibles) ? disponibles : null,
+            total: Number.isFinite(total) ? total : null
+          }
+        };
+      }).filter((item) => item.compania);
+
+      return {
+        companias,
+        total_companias: companias.length,
+        total_carros: companias.reduce((sum, item) => sum + item.carros.length, 0)
+      };
+    } catch (error) {
+      return null;
+    }
+  });
+
+  if (gestionData) return gestionData;
+
   return page.evaluate(() => {
     const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
     const normalizeColor = (value) => normalize(value).toLowerCase().replace(/\s+/g, '');
@@ -296,6 +498,8 @@ async function extractSiacResumen(page) {
 
 async function waitForHabilitacionesPage(page) {
   await page.waitForFunction(() => {
+    if (document.getElementById('cuartel-todo-config')) return true;
+
     const title = Array.from(document.querySelectorAll('.box-title h3')).find((el) =>
       (el.textContent || '').toLowerCase().includes('totales por habilitación') ||
       (el.textContent || '').toLowerCase().includes('totales por habilitacion')
@@ -307,6 +511,49 @@ async function waitForHabilitacionesPage(page) {
 }
 
 async function extractHabilitaciones(page) {
+  const gestionData = await page.evaluate(async () => {
+    const configElement = document.getElementById('cuartel-todo-config');
+    if (!configElement?.textContent) return null;
+
+    try {
+      const config = JSON.parse(configElement.textContent);
+      const target = new URL(config?.routes?.todoData, location.href);
+      if (!config?.cuerpoId || !config?.routes?.todoData) return null;
+      target.searchParams.set('id_cuerpo', config.cuerpoId);
+      target.searchParams.set('ver_cia', '0');
+      const response = await fetch(target.toString(), { credentials: 'same-origin' });
+      if (!response.ok) throw new Error(`Cuarteles data request failed: ${response.status}`);
+      const data = await response.json();
+      const habilitaciones = Array.isArray(data?.habilitaciones) ? data.habilitaciones : [];
+      const totales = data?.totalesHabilitaciones || {};
+      const cuarteles = data?.cuarteles || {};
+      const columnas = Object.entries(cuarteles).map(([id, item]) => ({
+        id,
+        nombre: item?.nombre || `Cuartel ${id}`
+      }));
+
+      return {
+        titulo: 'Totales por Habilitación',
+        columnas: ['Habilitación', ...columnas.map((column) => column.nombre)],
+        filas: habilitaciones.map((habilitacion) => {
+          const valores = {};
+          columnas.forEach((column) => {
+            const value = totales?.[habilitacion.id_habilitacion]?.[column.id];
+            valores[column.nombre] = value === undefined || value === null ? null : value;
+          });
+          return {
+            habilitacion: habilitacion.nombre || null,
+            valores
+          };
+        })
+      };
+    } catch (error) {
+      return null;
+    }
+  });
+
+  if (gestionData) return gestionData;
+
   return page.evaluate(() => {
     const normalize = (value) => String(value || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -367,8 +614,13 @@ async function waitForManualLogin({ page, cuartelesAhoraUrl, traceId, storageSta
   console.error('Completa usuario/password/captcha en la ventana de Chromium.');
   console.error('La automatizacion continuara cuando el formulario de login desaparezca.\n');
 
-  const loginUser = page.getByRole('textbox', { name: /usuario/i });
-  await loginUser.first().waitFor({ state: 'hidden', timeout: manualLoginTimeoutMs });
+  await page.waitForFunction(() => {
+    const legacyUser = Array.from(document.querySelectorAll('input')).find((input) =>
+      /usuario/i.test(input.getAttribute('aria-label') || '')
+    );
+    const gestionLogin = document.querySelector('a.login-email-btn, input[name="email"]');
+    return !legacyUser && !gestionLogin;
+  }, { timeout: manualLoginTimeoutMs });
 
   await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
 
@@ -394,7 +646,6 @@ async function ensureSessionAndLogin({
 }) {
   await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
 
-  const loginUser = page.getByRole('textbox', { name: /usuario/i });
   const loginVisible = await isLoginVisible(page);
 
   writeLog('info', 'crew_session_check', {
@@ -419,14 +670,25 @@ async function ensureSessionAndLogin({
   }
 
   writeLog('info', 'crew_login_start', { traceId });
-  await loginUser.fill(username);
-  await page.getByRole('textbox', { name: /password/i }).fill(password);
-
-  const loginButton = page.getByRole('button', { name: /entrar/i });
-  await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-    loginButton.click()
-  ]);
+  const gestionLoginButton = page.locator('a.login-email-btn');
+  if ((await gestionLoginButton.count()) > 0) {
+    await gestionLoginButton.click();
+    await page.locator('input[name="email"]').fill(username);
+    await page.locator('input[name="password"]').fill(password);
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      page.locator('button[type="submit"]').click()
+    ]);
+  } else {
+    const loginUser = page.getByRole('textbox', { name: /usuario/i });
+    await loginUser.fill(username);
+    await page.getByRole('textbox', { name: /password/i }).fill(password);
+    const loginButton = page.getByRole('button', { name: /entrar/i });
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      loginButton.click()
+    ]);
+  }
 
   await page.goto(cuartelesAhoraUrl, { waitUntil: 'domcontentloaded' });
 
@@ -451,6 +713,7 @@ async function scrapeCrewSnapshot({
   sessionFilePath = '.session/crew-storage-state.json',
   manualLogin = false,
   manualLoginTimeoutMs = 300000,
+  browserExecutablePath,
   traceId
 }) {
   if ((!username || !password) && !manualLogin) {
@@ -481,7 +744,11 @@ async function scrapeCrewSnapshot({
     manualLoginTimeoutMs
   });
 
-  const browser = await chromium.launch({ headless: effectiveHeadless, slowMo });
+  const browser = await chromium.launch({
+    headless: effectiveHeadless,
+    slowMo,
+    ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {})
+  });
   const context = await browser.newContext(hasSavedSession ? { storageState: storageStatePath } : undefined);
 
   const authPage = await context.newPage();
@@ -584,7 +851,8 @@ function getRuntimeConfig(env = process.env) {
     persistSession: parseBooleanEnv(env.PERSIST_SESSION, true),
     sessionFilePath: env.SESSION_FILE || '.session/crew-storage-state.json',
     manualLogin: parseBooleanEnv(env.CREW_MANUAL_LOGIN, false),
-    manualLoginTimeoutMs: env.CREW_MANUAL_LOGIN_TIMEOUT_MS ? Number(env.CREW_MANUAL_LOGIN_TIMEOUT_MS) : 300000
+    manualLoginTimeoutMs: env.CREW_MANUAL_LOGIN_TIMEOUT_MS ? Number(env.CREW_MANUAL_LOGIN_TIMEOUT_MS) : 300000,
+    browserExecutablePath: env.BROWSER_EXECUTABLE_PATH || undefined
   };
 }
 
