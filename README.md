@@ -31,6 +31,7 @@ CREW_MANUAL_LOGIN=false
 CREW_MANUAL_LOGIN_TIMEOUT_MS=300000
 HOST_PORT=3005
 LOG_LEVEL=info
+BROWSER_EXECUTABLE_PATH=
 ```
 
 Notas:
@@ -41,6 +42,29 @@ Notas:
 - `CREW_MANUAL_LOGIN=true` fuerza navegador visible y espera a que completes login/captcha si CREW no reconoce la sesion.
 - `CREW_MANUAL_LOGIN_TIMEOUT_MS` define cuanto espera el flujo manual antes de fallar.
 - `LOG_LEVEL` controla verbosidad (`debug`, `info`, `warn`, `error`).
+- `BROWSER_EXECUTABLE_PATH` es opcional. Permite indicar un ejecutable Chromium/Chrome local cuando Playwright no tenga su navegador administrado instalado (por ejemplo, en Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe`). En Docker debe quedar vacío para usar el navegador incluido en la imagen.
+
+## Compatibilidad con Gestión
+
+La API es compatible con la plataforma Gestión de VIPER configurando:
+
+```bash
+CREW_BASE_URL=https://gestion.viper.cl
+```
+
+Gestión mantiene las pantallas requeridas, pero cambió su HTML y su flujo de inicio de sesión. El scraper detecta el acceso por correo/contraseña de Gestión y conserva la compatibilidad con el formulario clásico de CREW.
+
+Para evitar depender de la presentación visual, la captura usa las fuentes JSON autenticadas de Gestión:
+
+- `/cuarteles/ahora`: responde JSON con los cuarteles, asistencia, estados y habilitaciones cuando se solicita como XHR.
+- `/siac/resumen-data` y `/siac/vehiculos-one`: resumen de personal y vehículos para SIAC.
+- `/cuarteles/todo-data`: totales de habilitaciones por cuartel.
+
+Las URLs de pantalla se mantienen como origen de sesión y respaldo de compatibilidad:
+
+- `/cuarteles/ahora`
+- `/siac/resumen`
+- `/cuarteles/todo`
 
 ## Ejecucion local (sin Docker)
 
