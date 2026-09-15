@@ -54,13 +54,26 @@ async function waitForCuartelesAhoraPage(page) {
 async function extractCuartelesAhora(page) {
   const gestionData = await page.evaluate(async () => {
     try {
-      const response = await fetch(location.href, {
+      const configElement = document.getElementById('cuartel-ahora-config');
+      if (!configElement?.textContent) return null;
+
+      const config = JSON.parse(configElement.textContent);
+      if (!config?.cuerpoId || !config?.routes?.ahoraData) return null;
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      const response = await fetch(config.routes.ahoraData, {
+        method: 'POST',
         headers: {
           Accept: 'application/json, text/javascript, */*; q=0.01',
-          'X-Requested-With': 'XMLHttpRequest'
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {})
         },
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        body: JSON.stringify({ id_cuerpo: config.cuerpoId })
       });
+      if (!response.ok) throw new Error(`Cuarteles ahora request failed: ${response.status}`);
+
       const data = await response.json();
       if (!Array.isArray(data?.cuarteles) || !Array.isArray(data?.presentes)) return null;
 
@@ -85,8 +98,11 @@ async function extractCuartelesAhora(page) {
               })
               .filter((tag) => Boolean(tag.label));
 
+            const registro = normalize(persona.registro) || null;
             return {
-              registro: normalize(persona.registro) || null,
+              registro,
+              numero_registro: registro,
+              id_bombero: persona.id_bombero || null,
               cargo: normalize(persona.cargo) || null,
               estado: normalize(estado.nombre) || null,
               nombre: normalize(persona.nombre) || null,
@@ -203,6 +219,7 @@ async function extractCuartelesAhora(page) {
 
       return {
         registro,
+        numero_registro: registro,
         cargo,
         estado,
         nombre,
@@ -237,6 +254,7 @@ async function extractCuartelesAhora(page) {
               const checkoutForm = card.querySelector('.form-checkout');
               return {
                 registro: normalize(card.querySelector('.card-reg-number')?.textContent || '') || null,
+                numero_registro: normalize(card.querySelector('.card-reg-number')?.textContent || '') || null,
                 cargo: normalize(card.querySelector('.card-rank')?.textContent || '') || null,
                 estado: normalize(card.querySelector('.card-status-btn')?.textContent || '') || null,
                 nombre: normalize(card.querySelector('.card-name-text')?.textContent || '') || null,
