@@ -116,6 +116,7 @@ Ademas, el reporte `/report/guardia` considera `disponible_operativa` / `en_emer
 ### Datos de habilitaciones por persona (en `/report`)
 
 Cada persona en `cuarteles[].personal[]` ahora incluye:
+- `registro` / `numero_registro`: numero de registro del bombero en Gestión.
 - `tags`: letras originales de CREW (compatibilidad).
 - `tags_detalle`: detalle por tag con `label`, `background_color`, `text_color`, `match_type`, `habilitacion`, `candidatos`.
 - `habilitaciones`: lista de nombres de habilitaciones mapeadas por color.
