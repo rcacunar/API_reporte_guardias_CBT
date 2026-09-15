@@ -131,12 +131,23 @@ function buildOficialesDetalle(personal) {
     const key = normalizeText(nombre);
     if (seen.has(key)) continue;
     seen.add(key);
+    const numeroRegistro = String(
+      persona?.numero_registro ??
+      persona?.n_registro ??
+      persona?.num_registro ??
+      persona?.nro_registro ??
+      persona?.registro ??
+      persona?.numero ??
+      persona?.nro ??
+      ''
+    ).trim() || null;
 
     output.push({
       nombre,
       cargo: String(persona?.cargo || '').trim() || null,
       estado: String(persona?.estado || '').trim() || null,
-      es_oficial: isOficialByCargo(persona?.cargo)
+      es_oficial: isOficialByCargo(persona?.cargo),
+      numero_registro: numeroRegistro
     });
   }
 
