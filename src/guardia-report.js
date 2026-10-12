@@ -1,4 +1,4 @@
-const UNIT_TYPES = ['B', 'BX', 'Q', 'M', 'QM', 'GR', 'H', 'BH', 'BR', 'RX', 'K', 'S', 'Z', 'MX'];
+const UNIT_TYPES = ['B', 'BF', 'BX', 'Q', 'M', 'QM', 'GR', 'H', 'BH', 'BR', 'RX', 'K', 'S', 'Z', 'MX', 'UT'];
 const DEFAULT_VALID_STATES = ['DISPONIBLE'];
 
 function normalizeText(value) {
