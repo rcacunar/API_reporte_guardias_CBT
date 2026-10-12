@@ -148,7 +148,7 @@ Con esto el frontend puede poblar el combo `Oficial a Cargo` solo con opciones v
 - `N° Bomberos`: total del cuartel segun estados validos configurados en `estado_valido` (por defecto: `DISPONIBLE`).
 - `Habilitaciones`: desglose por compañía segun bomberos presentes con estado valido (ej: `4 Asistente de Trauma / 2 Inicial`), calculado desde tags mapeados por color en `/report`.
 - `Conductores`: listado de conductores por unidades en servicio (desde `/report/siac/resumen`).
-- `Desglose unidades`: conteo por tipo (`B,BX,Q,M,QM,GR,H,BH,BR,RX,K,S,Z,MX`) usando unidades en servicio.
+- `Desglose unidades`: conteo por tipo (`B,BF,BX,Q,M,QM,GR,H,BH,BR,RX,K,S,Z,MX,UT`) usando unidades en servicio. Las unidades `UTX` se agrupan bajo `UT`.
 
 Nota:
 - En la vista `/report/guardia/view`, los campos `Oficial a Cargo` y `Observaciones` se guardan en `localStorage` del navegador.
